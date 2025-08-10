@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>الحيوانات — خلفية أطفال + صوت مدمج</title>
+<style>
+  :root { --w: 200px; --h: 260px; --r: 14px; --shadow: 0 10px 20px rgba(0,0,0,.15); }
+
+  * { box-sizing: border-box; }
+  body{
+    margin:0; min-height:100vh; display:grid; place-items:center;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    /* الخلفية المتحركة في كل الصفحات */
+    background-image: url('A_colorful_2D_digital_illustration_set_against_a_l.png');
+    background-size: cover;          /* تغطي كامل الشاشة */
+    background-position: center;     /* تبقى في المنتصف */
+    background-repeat: no-repeat;    /* بدون تكرار */
+    /* لا نستخدم fixed حتى تتحرك مع التمرير */
+  }
+
+  /* غلاف شبه زجاجي لوضوح المحتوى فوق الخلفية */
+  .screen{
+    width:min(1200px,94vw);
+    padding:24px;
+    display:none;
+    background: rgba(255,255,255,0.68);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    backdrop-filter: saturate(120%) blur(4px);
+  }
+  .screen.active{ display:block; }
+
+  /* شاشة البداية */
+  .home-wrap{ display:grid; place-items:center; gap:14px; min-height: 40vh; }
+  .farm-btn{
+    display:grid; place-items:center; gap:10px;
+    background:#ffffff; border:0; border-radius:16px; padding:20px;
+    box-shadow: var(--shadow); cursor:pointer; color:#0f172a;
+  }
+  .farm-btn img{ width:160px; height:160px; object-fit:contain }
+  .farm-title{ font-weight:800; font-size:1.4rem }
+  .farm-sub{ color:#64748b }
+
+  /* شريط علوي */
+  .topbar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 12px; }
+  .backbtn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:8px 12px; border:0; border-radius:10px; background:#e2e8f0; color:#0f172a;
+    box-shadow: var(--shadow); cursor:pointer;
+  }
+  .backbtn svg{ width:18px; height:18px }
+  h1{ margin:0; font-size:1.2rem; color:#0f172a }
+
+  .bar{ display:flex; gap:10px; align-items:center; margin:10px 0 16px; flex-wrap:wrap }
+  .btn{ padding:8px 12px; border:0; border-radius:10px; background:#0ea5e9; color:#fff; font-weight:700; box-shadow: var(--shadow); cursor:pointer }
+  .muted{ background:#64748b }
+  .pill{ background:#e2e8f0; color:#0f172a; border-radius:999px; padding:.2rem .6rem; font-size:.8rem }
+
+  /* البطاقات */
+  .row{ display:flex; gap:18px; flex-wrap:nowrap; overflow-x:auto; padding-bottom:6px }
+  .card{ width:var(--w); height:var(--h); perspective:1000px; position:relative; flex:0 0 auto; outline:none }
+  .inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .7s ease; cursor:pointer }
+  .card.flipped .inner{ transform:rotateY(180deg) }
+  .face{ position:absolute; inset:0; border-radius:var(--r); overflow:hidden; box-shadow: var(--shadow); backface-visibility:hidden }
+  .front{ background:#fff; display:grid; place-items:center; position:relative }
+  .front img{ width:100%; height:100%; object-fit:cover }
+  .back{ display:grid; place-items:center; background:#16a34a; color:#fff; font-weight:900; font-size:86px; transform:rotateY(180deg) }
+  .heart{ position:absolute; top:8px; right:10px; font-size:26px; color:#cbd5e1; cursor:pointer; user-select:none; transition:transform .15s,color .2s; z-index:2 }
+  .heart:active{ transform:scale(.92) } .heart.filled{ color:#ef4444 }
+  .label{ margin-top:6px; text-align:center; color:#0f172a; font-weight:600 }
+  .actions{ display:grid; gap:6px; justify-items:center; margin-top:6px }
+  .mini{ padding:6px 10px; border-radius:8px }
+  .hint{ color:#64748b; font-size:.9rem; margin-top:8px }
+
+  /* كانفاس التصدير */
+  #exportCanvas{ position:fixed; inset:-9999px; width:480px; height:640px }
+</style>
+</head>
+<body>
+
+  <!-- شاشة البداية -->
+  <section id="home" class="screen active" aria-label="شاشة البداية">
+    <div class="home-wrap">
+      <button id="enterGame" class="farm-btn" type="button">
+        <img src="farm.png" alt="صورة مزرعة" />
+        <div class="farm-title">الحيوانات</div>
+        <div class="farm-sub">اضغط لعرض البطاقات</div>
+      </button>
+    </div>
+  </section>
+
+  <!-- شاشة اللعبة -->
+  <section id="game" class="screen" aria-label="شاشة الحيوانات">
+    <div class="topbar">
+      <button id="goBack" class="backbtn" type="button" title="رجوع">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="#0f172a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        رجوع
+      </button>
+      <h1>الحيوانات</h1>
+      <span style="width:64px"></span>
+    </div>
+
+    <div class="bar">
+      <button id="resetBtn" class="btn">إرجاع جميع البطاقات</button>
+      <button id="muteBtn" class="btn muted" aria-pressed="false" title="تبديل الصوت">الصوت: تشغيل</button>
+      <span class="pill">نصيحة: انقر بطاقة أولًا لتفعيل الصوت</span>
+    </div>
+
+    <div class="row" id="board" aria-label="لوحة البطاقات">
+      <!-- حصان -->
+      <div class="card" data-name="horse" data-letter="ح" data-img="horse.png" tabindex="0" role="button" aria-label="بطاقة حصان">
+        <div class="inner">
+          <div class="face front">
+            <img src="horse.png" alt="حصان" />
+            <span class="heart" title="مفضلة" aria-label="مفضلة">&#9825;</span>
+          </div>
+          <div class="face back" aria-hidden="true">ح</div>
+        </div>
+        <div class="label">حصان</div>
+        <div class="actions"><button class="btn mini export" type="button">تصدير 🎬</button></div>
+        <audio class="voice" preload="auto"></audio>
+      </div>
+
+      <!-- كلب -->
+      <div class="card" data-name="dog" data-letter="ك" data-img="dog.png" tabindex="0" role="button" aria-label="بطاقة كلب">
+        <div class="inner">
+          <div class="face front">
+            <img src="dog.png" alt="كلب" />
+            <span class="heart" title="مفضلة" aria-label="مفضلة">&#9825;</span>
+          </div>
+          <div class="face back" aria-hidden="true">ك</div>
+        </div>
+        <div class="label">كلب</div>
+        <div class="actions"><button class="btn mini export" type="button">تصدير 🎬</button></div>
+        <audio class="voice" preload="auto"></audio>
+      </div>
+
+      <!-- خروف -->
+      <div class="card" data-name="sheep" data-letter="خ" data-img="sheep.png" tabindex="0" role="button" aria-label="بطاقة خروف">
+        <div class="inner">
+          <div class="face front">
+            <img src="sheep.png" alt="خروف" />
+            <span class="heart" title="مفضلة" aria-label="مفضلة">&#9825;</span>
+          </div>
+          <div class="face back" aria-hidden="true">خ</div>
+        </div>
+        <div class="label">خروف</div>
+        <div class="actions"><button class="btn mini export" type="button">تصدير 🎬</button></div>
+        <audio class="voice" preload="auto"></audio>
+      </div>
+    </div>
+
+    <p class="hint">الفيديو WebM يتضمن الصوت المدمج تلقائيًا. الخلفية تغطي كل الصفحات وتتحرك مع التمرير.</p>
+  </section>
+
+  <canvas id="exportCanvas" width="480" height="640"></canvas>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // تبديل الشاشات
+  const home = document.getElementById('home');
+  const game = document.getElementById('game');
+  document.getElementById('enterGame').addEventListener('click',()=>{home.classList.remove('active');game.classList.add('active');});
+  document.getElementById('goBack').addEventListener('click',()=>{game.classList.remove('active');home.classList.add('active');});
+
+  // صوت واجهة بسيط
+  let soundEnabled = true;
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function blip(){
+    if (!soundEnabled) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type='sine'; o.frequency.value=600; g.gain.value=0.06;
+    o.connect(g); g.connect(audioCtx.destination); o.start();
+    o.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.07);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.09);
+    o.stop(audioCtx.currentTime + 0.1);
+  }
+  const muteBtn = document.getElementById('muteBtn');
+  function updateMuteUI(){ muteBtn.textContent = 'الصوت: ' + (soundEnabled ? 'تشغيل' : 'إيقاف'); muteBtn.classList.toggle('muted', soundEnabled); }
+  muteBtn.addEventListener('click', async () => { if (audioCtx.state === 'suspended') await audioCtx.resume(); soundEnabled = !soundEnabled; updateMuteUI(); });
+  updateMuteUI();
+
+  // توليد WAV ثم DataURL (Base64) — نغمة قصيرة لكل حرف
+  async function generateToneBase64(freq=500, ms=600){
+    const sr = 44100, frames = Math.floor((ms/1000)*sr);
+    const oc = new OfflineAudioContext(1, frames, sr);
+    const osc = oc.createOscillator(), g = oc.createGain();
+    osc.type='sine'; osc.frequency.value=freq;
+    const now=0, a=0.02, d=0.08, s=0.5, rel=0.15;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(0.9, now+a);
+    g.gain.linearRampToValueAtTime(s,  now+a+d);
+    g.gain.setValueAtTime(s, (ms/1000)-rel);
+    g.gain.linearRampToValueAtTime(0.0001, (ms/1000));
+    osc.connect(g).connect(oc.destination);
+    osc.start(now); osc.stop(ms/1000);
+    const rendered = await oc.startRendering();
+    function encodeWav(buf){
+      const ch=1, sr=buf.sampleRate, n=buf.length, pcm=buf.getChannelData(0);
+      const bytesPerSample=2, blockAlign=ch*bytesPerSample, byteRate=sr*blockAlign, dataSize=n*bytesPerSample*ch;
+      const ab=new ArrayBuffer(44+dataSize), v=new DataView(ab);
+      const w=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i,s.charCodeAt(i)); };
+      let o=0; w(o,'RIFF'); o+=4; v.setUint32(o,36+dataSize,true); o+=4; w(o,'WAVE'); o+=4; w(o,'fmt '); o+=4;
+      v.setUint32(o,16,true); o+=4; v.setUint16(o,1,true); o+=2; v.setUint16(o,ch,true); o+=2;
+      v.setUint32(o,sr,true); o+=4; v.setUint32(o,byteRate,true); o+=4; v.setUint16(o,blockAlign,true); o+=2;
+      v.setUint16(o,16,true); o+=2; w(o,'data'); o+=4; v.setUint32(o,dataSize,true); o+=4;
+      let idx=o; for(let i=0;i<n;i++){ let s=pcm[i]; s=Math.max(-1,Math.min(1,s)); v.setInt16(idx, s<0?s*0x8000:s*0x7FFF, true); idx+=2; }
+      return new Blob([v],{type:'audio/wav'});
+    }
+    const blob = encodeWav(rendered);
+    const dataUrl = await new Promise(res=>{ const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsDataURL(blob); });
+    return dataUrl; // data:audio/wav;base64,...
+  }
+
+  const letterFreq = { 'ح': 430, 'ك': 520, 'خ': 380 };
+
+  // إعداد الصوت المضمّن لكل بطاقة مرة واحدة عند أول دخول
+  let voicesReady = false;
+  async function prepareCardVoices(){
+    const cards = document.querySelectorAll('.card');
+    for (const card of cards) {
+      const letter = card.dataset.letter;
+      const dataUrl = await generateToneBase64(letterFreq[letter] || 500, 600);
+      const audio = card.querySelector('.voice');
+      audio.src = dataUrl; // Base64
+    }
+  }
+  document.getElementById('enterGame').addEventListener('click', async ()=>{
+    if (!voicesReady) { await prepareCardVoices(); voicesReady = true; }
+  }, { once:true });
+
+  // تفاعل البطاقات
+  const board = document.getElementById('board');
+  function isControl(el){ return el.closest('.actions') || el.classList.contains('heart'); }
+  function toggleCard(card){
+    card.classList.toggle('flipped'); blip();
+    if (card.classList.contains('flipped')) {
+      const audio = card.querySelector('.voice'); if (audio && audio.src) { audio.currentTime=0; audio.play().catch(()=>{}); }
+    }
+  }
+  board.addEventListener('click', async (e) => {
+    const card = e.target.closest('.card'); if (!card) return;
+    if (isControl(e.target)) return;
+    if (audioCtx.state === 'suspended') { try { await audioCtx.resume(); } catch {} }
+    toggleCard(card);
+  });
+  board.addEventListener('keydown', (e) => {
+    if (!['Enter',' '].includes(e.key)) return;
+    const card = e.target.closest('.card'); if (card) { e.preventDefault(); toggleCard(card); }
+  });
+  board.addEventListener('click', (e) => {
+    if (e.target.classList.contains('heart')) {
+      e.stopPropagation(); const heart=e.target;
+      heart.classList.toggle('filled');
+      heart.innerHTML = heart.classList.contains('filled') ? '&#10084;' : '&#9825;';
+      blip();
+    }
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('flipped')); blip();
+  });
+
+  // تصدير فيديو WebM مع الصوت المضمّن
+  document.querySelectorAll('.export').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{ e.stopPropagation(); const card = e.target.closest('.card'); exportCardVideo(card); });
+  });
+  async function exportCardVideo(card) {
+    const W=480, H=640, DURATION=3000, FPS=60;
+    const imgPath = card.dataset.img;
+    const img = new Image(); img.src = imgPath; await img.decode();
+
+    const canvas = document.getElementById('exportCanvas');
+    const c = canvas.getContext('2d');
+    const canvasStream = canvas.captureStream(FPS);
+
+    const audioEl = card.querySelector('.voice');
+    let recorder, mixStream;
+    if (audioEl && audioEl.src) {
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const dest = audioCtx.createMediaStreamDestination();
+      const node = audioCtx.createMediaElementSource(audioEl);
+      node.connect(dest); node.connect(audioCtx.destination);
+      mixStream = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+      recorder = new MediaRecorder(mixStream, { mimeType: 'video/webm;codecs=vp9,opus' });
+    } else {
+      mixStream = new MediaStream([...canvasStream.getVideoTracks()]);
+      recorder = new MediaRecorder(mixStream, { mimeType: 'video/webm;codecs=vp9' });
+    }
+
+    const chunks=[]; recorder.ondataavailable=(e)=>{ if(e.data.size) chunks.push(e.data); };
+    recorder.onstop=()=>{ const blob=new Blob(chunks,{type:'video/webm'}); const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download=`${card.dataset.name||'card'}.webm`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    };
+
+    const letter=card.dataset.letter; const label = card.querySelector('.label')?.textContent?.trim() || '';
+    recorder.start(); if (audioEl && audioEl.src) { audioEl.pause(); audioEl.currentTime=0; }
+
+    const start=performance.now(); let startedAudio=false;
+    function frame(t){
+      const elapsed=t-start, progress=Math.min(elapsed/DURATION,1);
+      c.fillStyle='#0b1220'; c.fillRect(0,0,W,H);
+
+      const cardW=360, cardH=520, cx=W/2, cy=H/2;
+      c.save(); c.translate(cx,cy);
+      let scaleX = progress<0.5 ? 1-(progress/0.5) : (progress-0.5)/0.5; scaleX=Math.max(scaleX,0.04);
+      c.scale(scaleX,1);
+
+      const showingBack = progress>=0.5;
+      c.fillStyle = showingBack ? '#16a34a' : '#ffffff';
+      roundRect(c,-cardW/2,-cardH/2,cardW,cardH,16);
+
+      if (!showingBack) {
+        const r=fitCover(img.width,img.height,cardW,cardH);
+        c.drawImage(img,-cardW/2 + r.x, -cardH/2 + r.y, r.w, r.h);
+      } else {
+        c.fillStyle='#ffffff'; c.font='bold 180px system-ui, Arial'; c.textAlign='center'; c.textBaseline='middle';
+        c.fillText(letter,0,10);
+      }
+      c.restore();
+
+      c.fillStyle='#e2e8f0'; c.font='600 28px system-ui, Arial'; c.textAlign='center';
+      c.fillText(label, W/2, H-24);
+
+      if (!startedAudio && progress>=0.5 && audioEl && audioEl.src) { startedAudio=true; audioEl.currentTime=0; audioEl.play().catch(()=>{}); }
+
+      if (progress<1) requestAnimationFrame(frame); else { recorder.stop(); audioEl && audioEl.pause(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // أدوات رسم
+  function roundRect(c,x,y,w,h,r){
+    c.beginPath(); c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
+    c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h); c.lineTo(x+r,y+h);
+    c.quadraticCurveTo(x,y+h,x,y+h-r); c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); c.fill();
+  }
+  function fitCover(sw,sh,dw,dh){
+    const sr=sw/sh, dr=dw/dh; let w,h; if(sr>dr){ h=dh; w=h*sr; } else { w=dw; h=w/sr; }
+    return { x:(dw-w)/2, y:(dh-h)/2, w, h };
+  }
+});
+</script>
+</body>
+</html>
